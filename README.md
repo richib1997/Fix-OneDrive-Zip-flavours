@@ -1,2 +1,2 @@
 # Fix-OneDrive-Zip-py
-Fix OneDrive/Windowa zip files larger than 4GiB
+This program is a simple rewriting of the Perl script Fix-OneDrive-Zip. For any technical details, see the original repository: https://github.com/pmqs/Fix-OneDrive-Zip
