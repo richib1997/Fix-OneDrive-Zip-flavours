@@ -11,37 +11,43 @@ ZIP_END_CENTRAL_HDR_SIG = b"\x50\x4b\x05\x06"
 CORRECT_OFFSET = b"\xff\xff\xff\xff"
 ZIP64_END_CENTRAL_LOC_HDR_SIG = b"\x50\x4b\x06\x07"
 
-def fix_zip(filepath: Path, dry_run: bool):
-   with open(filepath, "r+b") as f:
-      if f.read(4) != ZIP_LOCAL_HDR_SIG:
-         raise ValueError(f"No Zip signature at start of {filepath}")
+def fix_zip(files: list[Path], dry_run: bool):
+   for filepath in files:
+      try:
+         with open(filepath, "r+b") as f:
+            if f.read(4) != ZIP_LOCAL_HDR_SIG:
+               raise ValueError(f"No Zip signature at start of {filepath}")
 
-      f.seek(-42, os.SEEK_END)
-      data = f.read(42)
+            f.seek(-42, os.SEEK_END)
+            data = f.read(42)
 
-      # EOCD signature and offset check
-      if data[20:24] != ZIP_END_CENTRAL_HDR_SIG:
-         raise ValueError(f"Cannot find Zip signature at end of {filepath}")
+            # EOCD signature and offset check
+            if data[20:24] != ZIP_END_CENTRAL_HDR_SIG:
+               raise ValueError(f"Cannot find Zip signature at end of {filepath}")
 
-      if data[36:40] != CORRECT_OFFSET:
-         raise ValueError(f"Bad offset at end of {data[36:40]}")
+            if data[36:40] != CORRECT_OFFSET:
+               raise ValueError(f"Bad offset at end of {data[36:40]}")
 
-      # ZIP64 signature check
-      if data[:4] != ZIP64_END_CENTRAL_LOC_HDR_SIG:
-         raise ValueError(f"Cannot find ZIP64 signature at end of {filepath}")
+            # ZIP64 signature check
+            if data[:4] != ZIP64_END_CENTRAL_LOC_HDR_SIG:
+               raise ValueError(f"Cannot find ZIP64 signature at end of {filepath}")
 
-      match data[16:20]:
-         case b"\x00\x00\x00\x00":
-            if dry_run:
-               print("(dry-run)", end=" ")
-            else:
-               f.seek(-42 + 16, os.SEEK_END)
-               f.write(b"\x01\x00\x00\x00")
-            print(f"Correction applied: 'Total Number of Disks' set to 1")
-         case b"\x01\x00\x00\x00":
-            print(f"Nothing to do: 'Total Number of Disks' field is already 1")
-         case _:
-            raise ValueError(f"'Total Number of Disks' field is {data[16:20]}")
+            match data[16:20]:
+               case b"\x00\x00\x00\x00":
+                  if dry_run:
+                     print("(dry-run)", end=" ")
+                  else:
+                     f.seek(-42 + 16, os.SEEK_END)
+                     f.write(b"\x01\x00\x00\x00")
+                  print(f"Correction applied: 'Total Number of Disks' set to 1")
+               case b"\x01\x00\x00\x00":
+                  print(f"Nothing to do: 'Total Number of Disks' field is already 1")
+               case _:
+                  raise ValueError(f"'Total Number of Disks' field is {data[16:20]}")
+               
+      except (FileNotFoundError, ValueError) as err:
+         print(err)
+         print("File skipped!")
 
 
 if __name__ == "__main__":
@@ -56,7 +62,7 @@ if __name__ == "__main__":
    )
    parser.add_argument("--dry-run", action="store_true", 
                        help="perform a trial run with no changes made")
-   parser.add_argument("filepath", type=Path, metavar="FILEPATH",
-                       help="Path of the ZIP file")
+   parser.add_argument("files", type=Path, metavar="ZIP_PATH", nargs='+',
+                       help="Paths of the ZIP files")
    args = parser.parse_args()
-   fix_zip(args.filepath, args.dry_run)
+   fix_zip(args.files, args.dry_run)
