@@ -4,5 +4,3 @@ This program is a simple rewriting of the Perl script Fix-OneDrive-Zip. For any 
 ## Usage
 
     python3 fix-zip [--dry-run] file1.zip [file2.zip ...]
-
-The `--dry-run` option will simulate running of the program without making any changes to the Zip file.
